@@ -8,26 +8,30 @@
 import SwiftUI
 
 @main
-struct clickApp: App {
-    @State private var touches: [CGPoint] = []
+struct ClickApp: App {
+    private let TOUCH_VIEW = TouchView()
 
     var body: some Scene {
         WindowGroup {
-            TouchView(touches: touches)
+            TOUCH_VIEW
                 .onAppear() {
-                    let device = MTDeviceCreateDefault().takeRetainedValue() as MTDevice
-                    MTRegisterContactFrameCallback(device) { device, touches, fingers, time, frame in
-                        
-                        let touchesBuffer = UnsafeBufferPointer(start: touches, count: fingers)
-                        for touch in touchesBuffer {
-                            let position = touch.normalized.position
-                            let id = touch.fingerID
-                            print(id)
-                        }
-                        
+                    guard let DEVICE = MTDeviceCreateDefault()?.takeRetainedValue() else {
+                        // Handle error: unable to create MTDevice
+                        return
                     }
-                    MTDeviceStart(device, 0)
+                    
+                    let TOUCH_VIEW_POINTER = UnsafeMutablePointer<TouchView>.allocate(capacity: 1)
+                    TOUCH_VIEW_POINTER.initialize(to: TOUCH_VIEW)
+                    MTRegisterContactFrameCallbackWithRefcon(DEVICE, { device, touches, fingers, time, frame, refcon in
+                        let TOUCH_VIEW_POINTER = refcon!.assumingMemoryBound(to: TouchView.self),
+                            TOUCH_VIEW = TOUCH_VIEW_POINTER.pointee
+                        let TOUCHES_BUFFER = UnsafeBufferPointer(start: touches, count: fingers),
+                            TOUCHES = Array(TOUCHES_BUFFER)
+                        TOUCH_VIEW.test(TOUCHES)
+                    }, TOUCH_VIEW_POINTER)
+                    MTDeviceStart(DEVICE, 0)
                 }
         }
     }
 }
+

@@ -8,7 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		8097C01B2C19F9290002D83B /* clickApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8097C01A2C19F9290002D83B /* clickApp.swift */; };
-		8097C01D2C19F9290002D83B /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8097C01C2C19F9290002D83B /* ContentView.swift */; };
+		8097C01D2C19F9290002D83B /* TouchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8097C01C2C19F9290002D83B /* TouchView.swift */; };
 		8097C01F2C19F92B0002D83B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8097C01E2C19F92B0002D83B /* Assets.xcassets */; };
 		8097C0222C19F92B0002D83B /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8097C0212C19F92B0002D83B /* Preview Assets.xcassets */; };
 		8097C02F2C19FAFF0002D83B /* MultitouchSupport.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8097C02E2C19FAFF0002D83B /* MultitouchSupport.framework */; };
@@ -32,7 +32,7 @@
 /* Begin PBXFileReference section */
 		8097C0172C19F9290002D83B /* click.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = click.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		8097C01A2C19F9290002D83B /* clickApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = clickApp.swift; sourceTree = "<group>"; };
-		8097C01C2C19F9290002D83B /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		8097C01C2C19F9290002D83B /* TouchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TouchView.swift; sourceTree = "<group>"; };
 		8097C01E2C19F92B0002D83B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		8097C0212C19F92B0002D83B /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		8097C0232C19F92B0002D83B /* click.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = click.entitlements; sourceTree = "<group>"; };
@@ -75,7 +75,7 @@
 			children = (
 				8097C01A2C19F9290002D83B /* clickApp.swift */,
 				8097C0292C19F96D0002D83B /* MultitouchSupport.h */,
-				8097C01C2C19F9290002D83B /* ContentView.swift */,
+				8097C01C2C19F9290002D83B /* TouchView.swift */,
 				8097C01E2C19F92B0002D83B /* Assets.xcassets */,
 				8097C0232C19F92B0002D83B /* click.entitlements */,
 				8097C0202C19F92B0002D83B /* Preview Content */,
@@ -172,7 +172,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				8097C01D2C19F9290002D83B /* ContentView.swift in Sources */,
+				8097C01D2C19F9290002D83B /* TouchView.swift in Sources */,
 				8097C01B2C19F9290002D83B /* clickApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
