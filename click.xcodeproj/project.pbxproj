@@ -11,7 +11,23 @@
 		8097C01D2C19F9290002D83B /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8097C01C2C19F9290002D83B /* ContentView.swift */; };
 		8097C01F2C19F92B0002D83B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8097C01E2C19F92B0002D83B /* Assets.xcassets */; };
 		8097C0222C19F92B0002D83B /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8097C0212C19F92B0002D83B /* Preview Assets.xcassets */; };
+		8097C02F2C19FAFF0002D83B /* MultitouchSupport.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8097C02E2C19FAFF0002D83B /* MultitouchSupport.framework */; };
+		8097C0302C19FAFF0002D83B /* MultitouchSupport.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 8097C02E2C19FAFF0002D83B /* MultitouchSupport.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		8097C0312C19FAFF0002D83B /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				8097C0302C19FAFF0002D83B /* MultitouchSupport.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		8097C0172C19F9290002D83B /* click.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = click.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -20,6 +36,9 @@
 		8097C01E2C19F92B0002D83B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		8097C0212C19F92B0002D83B /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		8097C0232C19F92B0002D83B /* click.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = click.entitlements; sourceTree = "<group>"; };
+		8097C0292C19F96D0002D83B /* MultitouchSupport.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MultitouchSupport.h; sourceTree = "<group>"; };
+		8097C02A2C19FA010002D83B /* Bridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Bridge.h; sourceTree = "<group>"; };
+		8097C02E2C19FAFF0002D83B /* MultitouchSupport.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MultitouchSupport.framework; path = ../../../../../System/Library/PrivateFrameworks/MultitouchSupport.framework; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -27,6 +46,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8097C02F2C19FAFF0002D83B /* MultitouchSupport.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -38,6 +58,7 @@
 			children = (
 				8097C0192C19F9290002D83B /* click */,
 				8097C0182C19F9290002D83B /* Products */,
+				8097C02D2C19FAFF0002D83B /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -53,10 +74,12 @@
 			isa = PBXGroup;
 			children = (
 				8097C01A2C19F9290002D83B /* clickApp.swift */,
+				8097C0292C19F96D0002D83B /* MultitouchSupport.h */,
 				8097C01C2C19F9290002D83B /* ContentView.swift */,
 				8097C01E2C19F92B0002D83B /* Assets.xcassets */,
 				8097C0232C19F92B0002D83B /* click.entitlements */,
 				8097C0202C19F92B0002D83B /* Preview Content */,
+				8097C02A2C19FA010002D83B /* Bridge.h */,
 			);
 			path = click;
 			sourceTree = "<group>";
@@ -69,6 +92,14 @@
 			path = "Preview Content";
 			sourceTree = "<group>";
 		};
+		8097C02D2C19FAFF0002D83B /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				8097C02E2C19FAFF0002D83B /* MultitouchSupport.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -79,6 +110,7 @@
 				8097C0132C19F9290002D83B /* Sources */,
 				8097C0142C19F9290002D83B /* Frameworks */,
 				8097C0152C19F9290002D83B /* Resources */,
+				8097C0312C19FAFF0002D83B /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -101,6 +133,7 @@
 				TargetAttributes = {
 					8097C0162C19F9290002D83B = {
 						CreatedOnToolsVersion = 15.4;
+						LastSwiftMigration = 1540;
 					};
 				};
 			};
@@ -270,12 +303,14 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = click/click.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"click/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -286,7 +321,13 @@
 				PRODUCT_BUNDLE_IDENTIFIER = tools.click;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = click/Bridge.h;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
+				SYSTEM_FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SYSTEM_LIBRARY_DIR)/PrivateFrameworks",
+				);
 			};
 			name = Debug;
 		};
@@ -295,12 +336,14 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = click/click.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"click/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -311,7 +354,12 @@
 				PRODUCT_BUNDLE_IDENTIFIER = tools.click;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = click/Bridge.h;
 				SWIFT_VERSION = 5.0;
+				SYSTEM_FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SYSTEM_LIBRARY_DIR)/PrivateFrameworks",
+				);
 			};
 			name = Release;
 		};

@@ -7,18 +7,26 @@
 
 import SwiftUI
 
-struct ContentView: View {
+struct TouchView: View {
+    let touches: [CGPoint]
+
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+        ZStack {
+            ForEach(touches.enumerated().map { $0 }, id: \.0) { index, point in
+                Circle()
+                    .fill(Color.blue)
+                    .frame(width: 20, height: 20)
+                    .position(point)
+            }
         }
-        .padding()
     }
 }
 
+
 #Preview {
-    ContentView()
+    TouchView(touches: [
+        CGPoint(x: 100, y: 100),
+        CGPoint(x: 200, y: 200),
+        CGPoint(x: 300, y: 300)
+    ])
 }
