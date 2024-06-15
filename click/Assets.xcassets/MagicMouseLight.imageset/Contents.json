@@ -1,17 +1,15 @@
 {
   "images" : [
     {
-      "filename" : "Magic Mouse Icon.png",
+      "filename" : "MagicMouseLight@2x.png",
       "idiom" : "universal",
       "scale" : "1x"
     },
     {
-      "filename" : "Magic Mouse Icon@2x.png",
       "idiom" : "universal",
       "scale" : "2x"
     },
     {
-      "filename" : "Magic Mouse Icon@3x.png",
       "idiom" : "universal",
       "scale" : "3x"
     }
