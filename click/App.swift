@@ -14,7 +14,7 @@ struct click: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     
     var body: some Scene {
-        MenuBarExtra("", image: colorScheme == .dark ? "StatusBarIconDark" : "StatusBarIconLight") {
+        MenuBarExtra("", image: colorScheme == .light ? "StatusBarIconLight" : "StatusBarIconDark") {
             MainView.MAIN_VIEW
         }.menuBarExtraStyle(.window)
     }
@@ -23,6 +23,7 @@ struct click: App {
 class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         Device.startMonitoringDevices()
+        GestureRecognizer.GESTURE_RECOGNIZER.setupEventTap()
     }
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         return false
