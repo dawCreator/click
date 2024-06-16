@@ -22,11 +22,19 @@ struct click: App {
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
+        guard isProcessTrusted() else {
+            exit(1)
+        }
         Device.startMonitoringDevices()
         GestureRecognizer.GESTURE_RECOGNIZER.setupEventTap()
     }
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         return false
+    }
+    private func isProcessTrusted() -> Bool {
+        let promptKey = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String
+        let opts = [promptKey: true] as CFDictionary
+        return AXIsProcessTrustedWithOptions(opts)
     }
 }
 

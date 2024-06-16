@@ -11,7 +11,7 @@ class GestureRecognizer: ObservableObject {
     static let GESTURE_RECOGNIZER: GestureRecognizer = GestureRecognizer()
     
     private var previousDistance: Float?
-    private var isMiddle: Bool = false
+    var isMiddle: Bool = false
 
     public func recognize(mtTouches: [MTTouch]) {
         let FINGER_COUNT = mtTouches.count
@@ -53,8 +53,8 @@ class GestureRecognizer: ObservableObject {
                         (1 << CGEventType.rightMouseUp.rawValue)
 
         // Use Unmanaged.passRetained to properly manage the memory of the isMiddle pointer
-        let IS_MIDDLE_POINTER: UnsafeMutablePointer<Bool> = withUnsafeMutablePointer(to: &isMiddle) { $0 }
-
+        let IS_MIDDLE_POINTER = UnsafeMutablePointer<GestureRecognizer>.allocate(capacity: 1)
+        IS_MIDDLE_POINTER.initialize(to: self)
         // Create the event tap
         eventTap = CGEvent.tapCreate(
            tap: .cghidEventTap,
@@ -62,22 +62,35 @@ class GestureRecognizer: ObservableObject {
            options: .defaultTap,
            eventsOfInterest: CGEventMask(eventMask),
            callback: { (proxy, type, event, refcon) -> Unmanaged<CGEvent>? in
-               let IS_MIDDLE = refcon!.assumingMemoryBound(to: Bool.self).pointee
-               print(IS_MIDDLE)
-               if IS_MIDDLE {
-                   // Consume the existing event
-                   event.setIntegerValueField(.mouseEventButtonNumber, value: Int64(2)) // Set the event to Middle Click
-
-                   // Send the new event
-                   event.post(tap: .cghidEventTap)
-
-                   // Return nil to consume the original event
+               let GESTURE_RECOGNIZER = refcon!.assumingMemoryBound(to: GestureRecognizer.self).pointee
+               if (type == .tapDisabledByTimeout) {
+                   CGEvent.tapEnable(tap: GESTURE_RECOGNIZER.eventTap!, enable: true)
+               }
+               else if GESTURE_RECOGNIZER.isMiddle {
+                   var midEventType: CGEventType
+                   switch type {
+                   case .leftMouseDown:
+                       midEventType = .otherMouseDown
+                   case .rightMouseDown:
+                       midEventType = .otherMouseDown
+                   case .leftMouseUp:
+                       midEventType = .otherMouseUp
+                   case .rightMouseUp:
+                       midEventType = .otherMouseUp
+                   case .leftMouseDragged:
+                       midEventType = .otherMouseDragged
+                   case .rightMouseDragged:
+                       midEventType = .otherMouseDragged
+                   default:
+                       return Unmanaged.passUnretained(event)
+                   }
+                   let MID_EVENT = CGEvent(mouseEventSource: CGEventSource(event: event), mouseType: midEventType, mouseCursorPosition: event.location, mouseButton: .center)
+                   MID_EVENT?.post(tap: .cghidEventTap)
                    return nil
                }
-
                // Return the original event if no modification is needed
-               return Unmanaged.passRetained(event)
-           }, userInfo: UnsafeMutableRawPointer(IS_MIDDLE_POINTER))!
+               return Unmanaged.passUnretained(event)
+           }, userInfo: IS_MIDDLE_POINTER)!
 
         // Create a run loop source and add it to the current run loop
         let runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, eventTap, 0)
