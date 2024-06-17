@@ -36,9 +36,18 @@ class GestureRecognizer: ObservableObject {
                 DY = A.y - B.y
             let DISTANCE = sqrt(DX*DX + DY*DY)
             if previousDistance != nil {
-                let DISTANCE_DELTA = DISTANCE - previousDistance!
-                print("Scale: ", DISTANCE_DELTA)
-                print(CGEvent.tapIsEnabled(tap: eventTap!))
+                let DISTANCE_DELTA: Double = Double(DISTANCE - previousDistance!)
+                /*
+                let PINCH_EVENT = CGEvent(source: nil)!
+                let base: Double = 1000 // magic
+                let value = Int64(min(max(-1, Float(DISTANCE_DELTA / base)), 1).bitPattern)
+                PINCH_EVENT.type = CGEventType.gesture
+                PINCH_EVENT[NSEvent.gestureType] = NSEvent.GestureType.zoom.rawValue
+                PINCH_EVENT[NSEvent.gestureSwipeDirection] = value
+                PINCH_EVENT[NSEvent.gestureZoomDirection] = value
+                PINCH_EVENT[NSEvent.gesturePhase] = Int64(phase.rawValue)
+                e.post(tap: .cghidEventTap)
+                 */
             }
             previousDistance = DISTANCE
         default:
