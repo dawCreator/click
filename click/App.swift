@@ -26,7 +26,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             exit(1)
         }
         Device.startMonitoringDevices()
-        GestureRecognizer.GESTURE_RECOGNIZER.setupEventTap()
+        GestureRecognizer.SINGLETON.setupEventTap()
     }
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         return false

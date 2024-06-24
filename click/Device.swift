@@ -91,7 +91,7 @@ class Device: Hashable, ObservableObject {
         set(touches) {
             _touches = touches
             MainView.MAIN_VIEW.observableTouches.update(touches: touches)
-            GestureRecognizer.GESTURE_RECOGNIZER.recognize(mtTouches: touches)
+            GestureRecognizer.SINGLETON.recognize(mtTouches: touches)
         }
     }
     private let CONTACT_FRAME_CALLBACK: MTFrameCallbackRefconFunction = { mtDevice, mtTouches, fingers, time, frame, device in

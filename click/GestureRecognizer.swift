@@ -10,25 +10,21 @@ import Cocoa
 import QuartzCore
 
 class GestureRecognizer: ObservableObject {
-    static let GESTURE_RECOGNIZER: GestureRecognizer = GestureRecognizer()
+    static let SINGLETON: GestureRecognizer = GestureRecognizer()
+// Gesture Synthesizer
+    private let GESTURE_SYNTHESIZER: GestureSynthesizer = GestureSynthesizer()
+    private var recognizedGesture: Gesture? {
+        didSet(previousGesture) {
+            GESTURE_SYNTHESIZER.synthesize(gesture: recognizedGesture, previousGesture: previousGesture)
+        }
+    }
+// Privats
+    private var onlyFingerInMiddle: Bool = false
     
-    private var previousDistance: Float?
-    var isMiddle: Bool = false
-
+    private var previousPinchDistance: Float?
+    
     public func recognize(mtTouches: [MTTouch]) {
-        let FINGER_COUNT = mtTouches.count
-        if FINGER_COUNT != 2 {
-            previousDistance = nil
-        }
-        if FINGER_COUNT != 1 {
-            isMiddle = false
-        }
-        switch FINGER_COUNT {
-        case 1:
-            let ONLY_TOUCH = mtTouches[0],
-                POSITION = ONLY_TOUCH.normalized.position,
-                X = POSITION.x
-            isMiddle = 0.4 < X && X < 0.6
+        switch mtTouches.count {
         case 2:
             let TOUCH_ONE = mtTouches[0],
                 TOUCH_TWO = mtTouches[1]
@@ -37,40 +33,38 @@ class GestureRecognizer: ObservableObject {
             let DX = A.x - B.x,
                 DY = A.y - B.y
             let DISTANCE = sqrt(DX*DX + DY*DY)
-            if previousDistance != nil {
-                let DISTANCE_DELTA: Double = Double(DISTANCE - previousDistance!)
-                let DELAY = 0.001
-                let EVENT_SYNTHESIZER: EventSynthesizer = EventSynthesizer.SINGLETON
-                EVENT_SYNTHESIZER.synthesizeGestureBegin()
-                Thread.sleep(forTimeInterval: DELAY)
-                EVENT_SYNTHESIZER.synthesizeMagnification(magnification: DISTANCE_DELTA)
-                Thread.sleep(forTimeInterval: DELAY)
-                EVENT_SYNTHESIZER.synthesizeMagnification(magnification: DISTANCE_DELTA)
-                Thread.sleep(forTimeInterval: DELAY)
-                EVENT_SYNTHESIZER.synthesizeMagnification(magnification: DISTANCE_DELTA)
-                Thread.sleep(forTimeInterval: DELAY)
-                EVENT_SYNTHESIZER.synthesizeGestureEnd()
-                Thread.sleep(forTimeInterval: DELAY)
+            if previousPinchDistance != nil {
+                let DISTANCE_DELTA: Double = Double(DISTANCE - previousPinchDistance!)
+                if 0 < abs(DISTANCE_DELTA) {
+                    recognizedGesture = Magnification(delta: DISTANCE_DELTA)
+                    previousPinchDistance = DISTANCE
+                }
+            } else {
+                previousPinchDistance = DISTANCE
             }
-            previousDistance = DISTANCE
+        case 1:
+            let ONLY_TOUCH = mtTouches[0],
+                X = ONLY_TOUCH.normalized.position.x
+            onlyFingerInMiddle = 0.4 < X && X < 0.6
+            fallthrough
         default:
-            break
+            recognizedGesture = nil
+            previousPinchDistance = nil
         }
     }
     private var eventTap: CFMachPort?
     func setupEventTap() {
-        let eventMask: CGEventMask = ~CGEventMask(0)
+        let ALL_EVENTS_MASK: CGEventMask = ~CGEventMask(0)
 
-        // Use Unmanaged.passRetained to properly manage the memory of the isMiddle pointer
-        let IS_MIDDLE_POINTER = UnsafeMutablePointer<GestureRecognizer>.allocate(capacity: 1)
-        IS_MIDDLE_POINTER.initialize(to: self)
-        // Create the event tap
+        let SELF_POINTER = UnsafeMutablePointer<GestureRecognizer>.allocate(capacity: 1)
+        SELF_POINTER.initialize(to: self)
+        
         eventTap = CGEvent.tapCreate(
-           tap: .cghidEventTap,
-           place: .headInsertEventTap,
-           options: .defaultTap,
-           eventsOfInterest: eventMask,
-           callback: { (proxy, type, event, refcon) -> Unmanaged<CGEvent>? in
+           tap: .cghidEventTap, // Lowest Level Event Tap
+           place: .headInsertEventTap, // Insert First => Gets Events First
+           options: .defaultTap, // Can Read & Write Events
+           eventsOfInterest: ALL_EVENTS_MASK,
+           callback: { (proxy, type, event, self) -> Unmanaged<CGEvent>? in
                func getHumanReadableEventType(eventTypeRawValue: UInt32) -> String {
                    switch eventTypeRawValue {
                    case 0:
@@ -148,50 +142,34 @@ class GestureRecognizer: ObservableObject {
                        print(nsEvent.type.rawValue)
                        print(nsEvent.phase, "\n")
                    }
-                   //printGestureEventDetails(nsEvent: NSEvent(cgEvent: event)!)
+                   printGestureEventDetails(nsEvent: NSEvent(cgEvent: event)!)
                }
-               let GESTURE_RECOGNIZER = refcon!.assumingMemoryBound(to: GestureRecognizer.self).pointee
+               let GESTURE_RECOGNIZER = self!.assumingMemoryBound(to: GestureRecognizer.self).pointee
                if (type == .tapDisabledByTimeout) {
                    CGEvent.tapEnable(tap: GESTURE_RECOGNIZER.eventTap!, enable: true)
-               }
-               else if GESTURE_RECOGNIZER.isMiddle {
-                   var midEventType: CGEventType
-                   switch type {
-                   case .leftMouseDown:
-                       midEventType = .otherMouseDown
-                   case .rightMouseDown:
-                       midEventType = .otherMouseDown
-                   case .leftMouseUp:
-                       midEventType = .otherMouseUp
-                   case .rightMouseUp:
-                       midEventType = .otherMouseUp
-                   case .leftMouseDragged:
-                       midEventType = .otherMouseDragged
-                   case .rightMouseDragged:
-                       midEventType = .otherMouseDragged
-                   default:
+               } else if GESTURE_RECOGNIZER.onlyFingerInMiddle {
+                   let MAPPING: [CGEventType: CGEventType] = [
+                           .leftMouseDown: .otherMouseDown,
+                           .rightMouseDown: .otherMouseDown,
+                           .leftMouseUp: .otherMouseUp,
+                           .rightMouseUp: .otherMouseUp,
+                           .leftMouseDragged: .otherMouseDragged,
+                           .rightMouseDragged: .otherMouseDragged
+                       ]
+                   guard let midEventType = MAPPING[event.type] else {
                        return Unmanaged.passUnretained(event)
                    }
-                   let MID_EVENT = CGEvent(mouseEventSource: CGEventSource(event: event), mouseType: midEventType, mouseCursorPosition: event.location, mouseButton: .center)
-                   MID_EVENT?.post(tap: .cghidEventTap)
+                   GESTURE_RECOGNIZER.recognizedGesture = MiddleMouse(type: midEventType, position: event.location)
                    return nil
                }
-               // Return the original event if no modification is needed
+            // Return the original event if no modification is needed
                return Unmanaged.passUnretained(event)
-           }, userInfo: IS_MIDDLE_POINTER)!
+           }, userInfo: SELF_POINTER)!
 
-        // Create a run loop source and add it to the current run loop
+    // Create a run loop source and add it to the current run loop
         let runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, eventTap, 0)
         CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, .commonModes)
         CGEvent.tapEnable(tap: eventTap!, enable: true)
         CFRunLoopRun()
-        // Run the run loop to keep the event tap active
-        //RunLoop.current.run()
-    }
-    @objc func handlePinch() {
-        print("hzello")
-    }
-    private func capturePinchEvents() {
-        let gestureRecognizer = NSMagnificationGestureRecognizer(target: self, action: #selector(handlePinch))
     }
 }
