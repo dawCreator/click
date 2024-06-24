@@ -15,6 +15,7 @@
 		8097C0222C19F92B0002D83B /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8097C0212C19F92B0002D83B /* Preview Assets.xcassets */; };
 		8097C02F2C19FAFF0002D83B /* MultitouchSupport.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8097C02E2C19FAFF0002D83B /* MultitouchSupport.framework */; };
 		8097C0302C19FAFF0002D83B /* MultitouchSupport.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 8097C02E2C19FAFF0002D83B /* MultitouchSupport.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		80A365772C26220A007869F6 /* EventSynthesizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80A365762C26220A007869F6 /* EventSynthesizer.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -44,6 +45,7 @@
 		8097C0292C19F96D0002D83B /* MultitouchSupport.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MultitouchSupport.h; sourceTree = "<group>"; };
 		8097C02A2C19FA010002D83B /* Bridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Bridge.h; sourceTree = "<group>"; };
 		8097C02E2C19FAFF0002D83B /* MultitouchSupport.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MultitouchSupport.framework; path = ../../../../../System/Library/PrivateFrameworks/MultitouchSupport.framework; sourceTree = "<group>"; };
+		80A365762C26220A007869F6 /* EventSynthesizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventSynthesizer.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -79,6 +81,7 @@
 			isa = PBXGroup;
 			children = (
 				8097C01A2C19F9290002D83B /* App.swift */,
+				80A365762C26220A007869F6 /* EventSynthesizer.swift */,
 				803880832C1AF47400EA16BB /* GestureRecognizer.swift */,
 				803880892C1B0D8000EA16BB /* notes.md */,
 				803880872C1AF7E200EA16BB /* Device.swift */,
@@ -180,6 +183,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				80A365772C26220A007869F6 /* EventSynthesizer.swift in Sources */,
 				803880842C1AF47400EA16BB /* GestureRecognizer.swift in Sources */,
 				8097C01D2C19F9290002D83B /* MainView.swift in Sources */,
 				8097C01B2C19F9290002D83B /* App.swift in Sources */,
