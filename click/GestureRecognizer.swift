@@ -35,13 +35,12 @@ class GestureRecognizer: ObservableObject {
             let DISTANCE = sqrt(DX*DX + DY*DY)
             if previousPinchDistance != nil {
                 let DISTANCE_DELTA: Double = Double(DISTANCE - previousPinchDistance!)
-                if 0 < abs(DISTANCE_DELTA) {
-                    recognizedGesture = Magnification(delta: DISTANCE_DELTA)
-                    previousPinchDistance = DISTANCE
+                let MIN_PRESSURE = min(TOUCH_ONE.zTotal, TOUCH_TWO.zTotal)
+                if 0.001 < abs(DISTANCE_DELTA) && 0.4 < MIN_PRESSURE{
+                    recognizedGesture = Magnification(delta: DISTANCE_DELTA*4)
                 }
-            } else {
-                previousPinchDistance = DISTANCE
             }
+            previousPinchDistance = DISTANCE
         case 1:
             let ONLY_TOUCH = mtTouches[0],
                 X = ONLY_TOUCH.normalized.position.x
@@ -65,85 +64,6 @@ class GestureRecognizer: ObservableObject {
            options: .defaultTap, // Can Read & Write Events
            eventsOfInterest: ALL_EVENTS_MASK,
            callback: { (proxy, type, event, self) -> Unmanaged<CGEvent>? in
-               func getHumanReadableEventType(eventTypeRawValue: UInt32) -> String {
-                   switch eventTypeRawValue {
-                   case 0:
-                       return "Null"
-                   case 1:
-                       return "Left Mouse Down"
-                   case 2:
-                       return "Left Mouse Up"
-                   case 3:
-                       return "Right Mouse Down"
-                   case 4:
-                       return "Right Mouse Up"
-                   case 5:
-                       return "Mouse Moved"
-                   case 6:
-                       return "Left Mouse Dragged"
-                   case 7:
-                       return "Right Mouse Dragged"
-                   case 8:
-                       return "Mouse Entered"
-                   case 9:
-                       return "Mouse Exited"
-                   case 10:
-                       return "Key Down"
-                   case 11:
-                       return "Key Up"
-                   case 12:
-                       return "Flags Changed"
-                   case 13:
-                       return "AppKit Defined"
-                   case 14:
-                       return "System Defined"
-                   case 15:
-                       return "Application Defined"
-                   case 16:
-                       return "Periodic"
-                   case 17:
-                       return "Cursor Update"
-                   case 18:
-                       return "Rotate"
-                   case 19:
-                       return "Begin Gesture"
-                   case 20:
-                       return "End Gesture"
-                   case 22:
-                       return "Scroll Wheel"
-                   case 23:
-                       return "Tablet Point"
-                   case 24:
-                       return "Tablet Proximity"
-                   case 25:
-                       return "Other Mouse Down"
-                   case 26:
-                       return "Other Mouse Up"
-                   case 27:
-                       return "Other Mouse Dragged"
-                   case 29:
-                       return "Gesture"
-                   case 30:
-                       return "Magnify"
-                   case 31:
-                       return "Swipe"
-                   case 32:
-                       return "Smart Magnify"
-                   case 33:
-                       return "Quick Look"
-                   default:
-                       return "Unknown Event Type (\(eventTypeRawValue))"
-                   }
-               }
-               let EVENT_TYPE = getHumanReadableEventType(eventTypeRawValue: type.rawValue)
-               if (EVENT_TYPE == "Gesture") {
-                   func printGestureEventDetails(nsEvent: NSEvent) {
-                       print("Gesture Event Details:")
-                       print(nsEvent.type.rawValue)
-                       print(nsEvent.phase, "\n")
-                   }
-                   printGestureEventDetails(nsEvent: NSEvent(cgEvent: event)!)
-               }
                let GESTURE_RECOGNIZER = self!.assumingMemoryBound(to: GestureRecognizer.self).pointee
                if (type == .tapDisabledByTimeout) {
                    CGEvent.tapEnable(tap: GESTURE_RECOGNIZER.eventTap!, enable: true)
@@ -156,10 +76,10 @@ class GestureRecognizer: ObservableObject {
                            .leftMouseDragged: .otherMouseDragged,
                            .rightMouseDragged: .otherMouseDragged
                        ]
-                   guard let midEventType = MAPPING[event.type] else {
+                   guard let EVENT_TYPE = MAPPING[event.type] else {
                        return Unmanaged.passUnretained(event)
                    }
-                   GESTURE_RECOGNIZER.recognizedGesture = MiddleMouse(type: midEventType, position: event.location)
+                   GESTURE_RECOGNIZER.recognizedGesture = MiddleMouse(type: EVENT_TYPE, position: event.location)
                    return nil
                }
             // Return the original event if no modification is needed

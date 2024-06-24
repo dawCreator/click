@@ -10,11 +10,10 @@ import AppKit
 
 @main
 struct click: App {
-    @Environment(\.colorScheme) var colorScheme
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     
     var body: some Scene {
-        MenuBarExtra("", image: colorScheme == .light ? "StatusBarIconLight" : "StatusBarIconDark") {
+        MenuBarExtra("", image: "StatusBarIcon") {
             MainView.MAIN_VIEW
         }.menuBarExtraStyle(.window)
     }

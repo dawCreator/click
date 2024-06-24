@@ -14,7 +14,6 @@ class GestureSynthesizer {
     private let EVENT_SOURCE: CGEventSource = CGEventSource(stateID: .hidSystemState)!
     
     private func beginGesture() {
-        print("Start")
         let EVENT: CGEvent = CGEvent(source: EVENT_SOURCE)!
         EVENT.type = CGEventType(rawValue: 19)! // EventType: Gesture
         EVENT.flags = CGEventFlags(rawValue: 536870912)
@@ -26,7 +25,6 @@ class GestureSynthesizer {
         EVENT.post(tap: .cghidEventTap)
     }
     private func endGesture() {
-        print("end")
         let EVENT: CGEvent = CGEvent(source: EVENT_SOURCE)!
         EVENT.type = CGEventType(rawValue: 20)! // EventType: Gesture
         EVENT.flags = CGEventFlags(rawValue: 536870912)
@@ -104,7 +102,7 @@ class Magnification: Gesture {
     }
     
     func synthesize(event: CGEvent) -> CGEvent {
-        event.type = CGEventType(rawValue: 30)! // EventType: Gesture
+        event.type = CGEventType(rawValue: 30)! // EventType: Magnify
         event.flags = CGEventFlags(rawValue: 536870912)
         
         event.setIntegerValueField(CGEventField(rawValue: 55)!, value: 29) // Type = Magnify
