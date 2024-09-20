@@ -152,7 +152,7 @@ class MiddleMouse: Gesture {
     }
 // Own
     private let ALLOWED_EVENT_TYPES: Array<CGEventType> = [.otherMouseDown, .otherMouseUp, .otherMouseDragged]
-    private let TYPE: CGEventType
+    let TYPE: CGEventType
     
     private let POSITION: CGPoint
     init?(type: CGEventType, position: CGPoint) {

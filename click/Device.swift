@@ -17,7 +17,7 @@ class Device: Hashable, ObservableObject {
     static private(set) var s: Set<Device> = []
 // Track Active Devices:
     private var shouldDeinit: Bool = false
-    @objc static private func updateDevices(_: Notification?) {
+    @objc static func updateDevices(_: Notification?) {
     // Mark Old Devices
         for device in Device.s {
             device.shouldDeinit = true
@@ -76,8 +76,9 @@ class Device: Hashable, ObservableObject {
             let EXISTING_DEVICE = Device.s.first(where: {device in return device == self})
             EXISTING_DEVICE?.shouldDeinit = false
             return nil
+        } else {
+            Device.s.insert(self)
         }
-        Device.s.insert(self)
         startMonitoringTouches()
     }
     deinit {

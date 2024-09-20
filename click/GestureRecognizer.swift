@@ -15,10 +15,16 @@ class GestureRecognizer: ObservableObject {
     private let GESTURE_SYNTHESIZER: GestureSynthesizer = GestureSynthesizer()
     private var recognizedGesture: Gesture? {
         didSet(previousGesture) {
+            if let middleMouseGesture = recognizedGesture as? MiddleMouse {
+                if middleMouseGesture.TYPE == .otherMouseDown {
+                    lockFingerInMiddle = true
+                }
+            }
             GESTURE_SYNTHESIZER.synthesize(gesture: recognizedGesture, previousGesture: previousGesture)
         }
     }
 // Privats
+    private var lockFingerInMiddle: Bool = false
     private var onlyFingerInMiddle: Bool = false
     
     private var previousPinchDistance: Float?
@@ -42,9 +48,11 @@ class GestureRecognizer: ObservableObject {
             }
             previousPinchDistance = DISTANCE
         case 1:
-            let ONLY_TOUCH = mtTouches[0],
-                X = ONLY_TOUCH.normalized.position.x
-            onlyFingerInMiddle = 0.4 < X && X < 0.6
+            if !lockFingerInMiddle {
+                let ONLY_TOUCH = mtTouches[0],
+                    X = ONLY_TOUCH.normalized.position.x
+                onlyFingerInMiddle = 0.33 < X && X < 0.66
+            }
             fallthrough
         default:
             recognizedGesture = nil
@@ -78,6 +86,9 @@ class GestureRecognizer: ObservableObject {
                        ]
                    guard let EVENT_TYPE = MAPPING[event.type] else {
                        return Unmanaged.passUnretained(event)
+                   }
+                   if EVENT_TYPE == .otherMouseUp {
+                       GESTURE_RECOGNIZER.lockFingerInMiddle = false
                    }
                    GESTURE_RECOGNIZER.recognizedGesture = MiddleMouse(type: EVENT_TYPE, position: event.location)
                    return nil
