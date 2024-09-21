@@ -24,12 +24,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var popOver: NSPopover!
     
+    
     func applicationDidFinishLaunching(_ notification: Notification) {
         guard isProcessTrusted() else {
             exit(1)
         }
         
-        NSApplication.shared.setActivationPolicy(.accessory)
+        // NSApplication.shared.setActivationPolicy(.accessory)
     // Start App on Launch:
         do {
             try SMAppService.mainApp.register()
@@ -37,7 +38,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         catch {
             print("Failed Start On Launch")
         }
-            
+
         Device.startMonitoringDevices()
         GestureRecognizer.SINGLETON.setupEventTap()
     // TODO: Improve on this:
