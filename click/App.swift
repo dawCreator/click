@@ -76,7 +76,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func initializeStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let statusItemButton = statusItem.button {
-            statusItemButton.image = NSImage(named: "StatusBarIcon") // Set your icon name here
+            let image = NSImage(named: "MagicMouseIcon")
+            image?.size = CGSize(width: 18, height: 18)
+            statusItemButton.image = image
             statusItemButton.target = self
             statusItemButton.action = #selector(menuButtonToggle)
             statusItemButton.sendAction(on: [.leftMouseUp, .rightMouseUp])
@@ -86,8 +88,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         popOver = NSPopover()
-        popOver.behavior = .transient
         popOver.contentViewController = NSHostingController(rootView: MainView.MAIN_VIEW)
+        popOver.behavior = .transient
         logger.info("Popover initialized with main view")
     }
     

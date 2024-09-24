@@ -23,10 +23,10 @@ struct MainView: View {
     
     func extractPositionFrom(_ touch: MTTouch) -> CGPoint {
         let TOUCH_POSITION = touch.normalized.position
-        let MOUSE_IMAGE_WIDTH: CGFloat = 180,
-            MOUSE_IMAGE_HEIGHT: CGFloat = 290
-        let LEFT: CGFloat = 60,
-            BOTTOM: CGFloat = 30
+        let MOUSE_IMAGE_WIDTH: CGFloat = 300,
+            MOUSE_IMAGE_HEIGHT: CGFloat = 440
+        let LEFT: CGFloat = 200,
+            BOTTOM: CGFloat = 60
         
         let X = CGFloat(TOUCH_POSITION.x)*MOUSE_IMAGE_WIDTH + LEFT,
             Y = (1-CGFloat(TOUCH_POSITION.y))*MOUSE_IMAGE_HEIGHT + BOTTOM
@@ -41,14 +41,16 @@ struct MainView: View {
     var body: some View {
         ZStack {
             Image(colorScheme == .dark ? "MagicMouseDark" : "MagicMouseLight")
-            
+                .resizable()
+                .frame(width: 700, height: 700)
+                .offset(x: 10)
             ForEach(observableTouches.buffer.enumerated().map { $0 }, id: \.0) { index, touch in
                 Circle()
                     .stroke(Color.blue)
                     .fill(Color.blue.opacity(extractPressureFrom(touch: touch)))
-                    .frame(width: 20, height: 20)
+                    .frame(width: 40, height: 40)
                     .position(extractPositionFrom(touch))
             }
-        }.frame(minWidth: 300, maxWidth: 300)
+        }.frame(minWidth: 370, maxWidth: 370, minHeight: 600, maxHeight: 600)
     }
 }
