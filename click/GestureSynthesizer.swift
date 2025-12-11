@@ -22,6 +22,7 @@ class GestureSynthesizer {
         EVENT.setIntegerValueField(CGEventField(rawValue: 110)!, value: 61) // SubType = GestureBegin
         EVENT.setIntegerValueField(CGEventField(rawValue: 115)!, value: 5) // SubType = 5 ??
         EVENT.setIntegerValueField(CGEventField(rawValue: 117)!, value: 5) // SubType = 5 ??
+        EVENT.setIntegerValueField(CGEventField(rawValue: 87)!, value: 4294970300) // SubType = 5 ??
         EVENT.post(tap: .cghidEventTap)
     }
     private func endGesture() {
@@ -33,6 +34,8 @@ class GestureSynthesizer {
         EVENT.setIntegerValueField(CGEventField(rawValue: 110)!, value: 62) // SubType  = GestureEnd
         EVENT.setIntegerValueField(CGEventField(rawValue: 115)!, value: 5) // SubType = 5 ??
         EVENT.setIntegerValueField(CGEventField(rawValue: 117)!, value: 5) // SubType = 5 ??
+        EVENT.setIntegerValueField(CGEventField(rawValue: 87)!, value: 4294970300) // SubType = 5 ??
+
         EVENT.post(tap: .cghidEventTap)
     }
     private func getSystemTime() -> UInt64 {
@@ -48,7 +51,6 @@ class GestureSynthesizer {
                 event.timestamp = getSystemTime()
                 event = previousGesture!.synthesize(event: event)
                 event.setIntegerValueField(CGEventField(rawValue: 132)!, value: 4)
-                
                 event.post(tap: .cghidEventTap)
                 endGesture()
             }
@@ -110,6 +112,7 @@ class Magnification: Gesture {
         event.setIntegerValueField(CGEventField(rawValue: 101)!, value: 4) // ??
         event.setIntegerValueField(CGEventField(rawValue: 107)!, value: 4) // ??
         event.setIntegerValueField(CGEventField(rawValue: 110)!, value: 8) // SubType = Magnify
+        event.setIntegerValueField(CGEventField(rawValue: 87)!, value: 4294970300)
         event.setDoubleValueField(CGEventField(rawValue: 113)!, value: magnification) // Magnification
         event.setDoubleValueField(CGEventField(rawValue: 114)!, value: magnification) // Magnification
         event.setDoubleValueField(CGEventField(rawValue: 116)!, value: magnification) // Magnification
