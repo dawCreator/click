@@ -14,23 +14,8 @@
 		8097C01F2C19F92B0002D83B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8097C01E2C19F92B0002D83B /* Assets.xcassets */; };
 		8097C0222C19F92B0002D83B /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8097C0212C19F92B0002D83B /* Preview Assets.xcassets */; };
 		8097C02F2C19FAFF0002D83B /* MultitouchSupport.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8097C02E2C19FAFF0002D83B /* MultitouchSupport.framework */; };
-		8097C0302C19FAFF0002D83B /* MultitouchSupport.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 8097C02E2C19FAFF0002D83B /* MultitouchSupport.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		80A365772C26220A007869F6 /* GestureSynthesizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80A365762C26220A007869F6 /* GestureSynthesizer.swift */; };
 /* End PBXBuildFile section */
-
-/* Begin PBXCopyFilesBuildPhase section */
-		8097C0312C19FAFF0002D83B /* Embed Frameworks */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 10;
-			files = (
-				8097C0302C19FAFF0002D83B /* MultitouchSupport.framework in Embed Frameworks */,
-			);
-			name = "Embed Frameworks";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		803880832C1AF47400EA16BB /* GestureRecognizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GestureRecognizer.swift; sourceTree = "<group>"; };
@@ -44,7 +29,7 @@
 		8097C0232C19F92B0002D83B /* click.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = click.entitlements; sourceTree = "<group>"; };
 		8097C0292C19F96D0002D83B /* MultitouchSupport.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MultitouchSupport.h; sourceTree = "<group>"; };
 		8097C02A2C19FA010002D83B /* Bridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Bridge.h; sourceTree = "<group>"; };
-		8097C02E2C19FAFF0002D83B /* MultitouchSupport.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MultitouchSupport.framework; path = ../../../../../System/Library/PrivateFrameworks/MultitouchSupport.framework; sourceTree = "<group>"; };
+		8097C02E2C19FAFF0002D83B /* MultitouchSupport.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MultitouchSupport.framework; path = "/System/Library/PrivateFrameworks/MultitouchSupport.framework"; sourceTree = "<absolute>"; };
 		80A365762C26220A007869F6 /* GestureSynthesizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GestureSynthesizer.swift; sourceTree = "<group>"; };
 		80F3E7862C9E29C800E0060F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -123,7 +108,6 @@
 				8097C0132C19F9290002D83B /* Sources */,
 				8097C0142C19F9290002D83B /* Frameworks */,
 				8097C0152C19F9290002D83B /* Resources */,
-				8097C0312C19FAFF0002D83B /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -142,7 +126,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1540;
-				LastUpgradeCheck = 1540;
+				LastUpgradeCheck = 2720;
 				TargetAttributes = {
 					8097C0162C19F9290002D83B = {
 						CreatedOnToolsVersion = 15.4;
@@ -230,7 +214,9 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = JGM24C627J;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -254,6 +240,7 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
@@ -293,7 +280,9 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = JGM24C627J;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -310,6 +299,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 			};
 			name = Release;
@@ -325,8 +315,8 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"click/Preview Content\"";
-				DEVELOPMENT_TEAM = JGM24C627J;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -365,8 +355,8 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"click/Preview Content\"";
-				DEVELOPMENT_TEAM = JGM24C627J;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;

@@ -25,6 +25,8 @@ struct click: App {
 class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var popOver: NSPopover!
+    private var accessibilityPollingTimer: Timer?
+    private var isMonitoring = false
     
     // Logger instance for structured logging
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "AppDelegate")
@@ -32,10 +34,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         logger.info("Application did finish launching")
 
-        guard isProcessTrusted() else {
-            logger.error("Accessibility permissions are not granted. Exiting application.")
-            exit(1)
-        }
+        // macOS presents the accessibility prompt asynchronously. Keep the app
+        // alive while the user grants access, then start monitoring automatically.
+        _ = isProcessTrusted()
 
         // Register for automatic login
         registerForLaunchAtLogin()
@@ -47,19 +48,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSApplication.shared.setActivationPolicy(.accessory)
         logger.info("Set application activation policy to accessory")
 
-        // Start monitoring devices and gesture recognizer
-        Device.startMonitoringDevices()
-        GestureRecognizer.SINGLETON.setupEventTap()
-        logger.info("Started monitoring devices and gesture recognizer")
-
-        // Ensure devices are updated if initially empty
-        if Device.s.isEmpty {
-            logger.warning("Device list is empty. Scheduling device update in 10 seconds.")
-            DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(10)) {
-                Device.updateDevices(nil)
-                self.logger.info("Device update triggered")
-            }
+        // Wait for accessibility permission before starting device monitoring.
+        accessibilityPollingTimer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: true) { [weak self] _ in
+            self?.startMonitoringWhenTrusted()
         }
+        startMonitoringWhenTrusted()
     }
 
     // Method to register for automatic launch at login
@@ -72,7 +65,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    // Method to initialize the status item (menu bar icon)
+    // Method to initialize the status item
     private func initializeStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let statusItemButton = statusItem.button {
@@ -126,7 +119,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return false
     }
     
-    // Check if the application has accessibility permissions
+    // Request accessibility access and optionally show the macOS prompt.
     private func isProcessTrusted() -> Bool {
         let promptKey = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String
         let options = [promptKey: true] as CFDictionary
@@ -134,8 +127,29 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if trusted {
             logger.info("Application is trusted for accessibility permissions")
         } else {
-            logger.error("Application is not trusted for accessibility permissions")
+            logger.info("Waiting for accessibility permission")
         }
         return trusted
+    }
+
+    private func startMonitoringWhenTrusted() {
+        guard !isMonitoring, AXIsProcessTrusted() else { return }
+
+        accessibilityPollingTimer?.invalidate()
+        accessibilityPollingTimer = nil
+        isMonitoring = true
+
+        Device.startMonitoringDevices()
+        GestureRecognizer.SINGLETON.setupEventTap()
+        logger.info("Started monitoring devices and gesture recognizer")
+
+        // Ensure devices are updated if initially empty
+        if Device.s.isEmpty {
+            logger.warning("Device list is empty. Scheduling device update in 10 seconds.")
+            DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(10)) {
+                Device.updateDevices(nil)
+                self.logger.info("Device update triggered")
+            }
+        }
     }
 }
