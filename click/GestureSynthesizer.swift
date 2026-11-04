@@ -152,17 +152,14 @@ final class Rotation: Gesture {
     }
 }
 
-final class MiddleMouse: Gesture {
+final class MouseButtonClick: Gesture {
     let NEEDS_GESTURE_FRAME = false
     let TYPE: CGEventType
+    private let button: CGMouseButton
     private let position: CGPoint
 
-    private let allowedEventTypes: Set<CGEventType> = [
-        .otherMouseDown, .otherMouseUp, .otherMouseDragged
-    ]
-
-    init?(type: CGEventType, position: CGPoint) {
-        guard allowedEventTypes.contains(type) else { return nil }
+    init(type: CGEventType, button: CGMouseButton, position: CGPoint) {
+        self.button = button
         TYPE = type
         self.position = position
     }
@@ -173,7 +170,7 @@ final class MiddleMouse: Gesture {
             mouseEventSource: source,
             mouseType: TYPE,
             mouseCursorPosition: position,
-            mouseButton: .center
+            mouseButton: button
         )
     }
 }

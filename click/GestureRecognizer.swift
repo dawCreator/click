@@ -17,7 +17,7 @@ final class GestureRecognizer {
     private var recognizedGesture: Gesture? {
         didSet(previousGesture) {
             if recognizedGesture == nil && previousGesture == nil { return }
-            if let middleMouseGesture = recognizedGesture as? MiddleMouse,
+            if let middleMouseGesture = recognizedGesture as? MouseButtonClick,
                middleMouseGesture.TYPE == .otherMouseDown {
                 lockFingerInMiddle = true
             }
@@ -30,22 +30,31 @@ final class GestureRecognizer {
 
     private var lockFingerInMiddle = false
     private var onlyFingerInMiddle = false
+    private var dominantButton: CGMouseButton?
+    private var activePhysicalButton: CGMouseButton?
+    private var activeMappedButton: CGMouseButton?
     private var previousPinchDistance: Float?
     private var pendingPinchDelta: Float = 0
     private var eventTap: CFMachPort?
     private var eventTapRunLoopSource: CFRunLoopSource?
     private var hasLoggedEventTapFailure = false
 
-    private let middleMouseEventMapping: [CGEventType: CGEventType] = [
-        .leftMouseDown: .otherMouseDown,
-        .rightMouseDown: .otherMouseDown,
-        .leftMouseUp: .otherMouseUp,
-        .rightMouseUp: .otherMouseUp,
-        .leftMouseDragged: .otherMouseDragged,
-        .rightMouseDragged: .otherMouseDragged
-    ]
+    private let minimumDominantQuality: Float = 0.5
+    private let minimumQualityLead: Float = 0.125
 
     func recognize(mtTouches: [MTTouch]) {
+        let touching = mtTouches.filter { $0.state == MTTouchStateTouching }
+        if touching.count >= 2,
+           let strongest = touching.max(by: { $0.zTotal < $1.zTotal }),
+           let secondStrongest = touching.filter({ $0.fingerID != strongest.fingerID }).max(by: { $0.zTotal < $1.zTotal }),
+           strongest.zTotal >= minimumDominantQuality,
+           strongest.zTotal - secondStrongest.zTotal >= minimumQualityLead {
+            let x = strongest.normalized.position.x
+            dominantButton = x < 0.33 ? .left : (x > 0.66 ? .right : .center)
+        } else {
+            dominantButton = nil
+        }
+
         switch mtTouches.count {
         case 2:
             if !lockFingerInMiddle { onlyFingerInMiddle = false }
@@ -127,18 +136,51 @@ final class GestureRecognizer {
 
                 guard let userInfo else { return Unmanaged.passUnretained(event) }
                 let recognizer = Unmanaged<GestureRecognizer>.fromOpaque(userInfo).takeUnretainedValue()
-                guard recognizer.onlyFingerInMiddle,
-                      let mappedType = recognizer.middleMouseEventMapping[type] else {
+                let physicalButton: CGMouseButton
+                switch type {
+                case .leftMouseDown, .leftMouseUp, .leftMouseDragged: physicalButton = .left
+                case .rightMouseDown, .rightMouseUp, .rightMouseDragged: physicalButton = .right
+                default: return Unmanaged.passUnretained(event)
+                }
+
+                let isDown = type == .leftMouseDown || type == .rightMouseDown
+                let isUp = type == .leftMouseUp || type == .rightMouseUp
+                var targetButton: CGMouseButton?
+                if isDown {
+                    let candidate = recognizer.dominantButton ?? (recognizer.onlyFingerInMiddle ? .center : nil)
+                    if let candidate, candidate != physicalButton {
+                        recognizer.activePhysicalButton = physicalButton
+                        recognizer.activeMappedButton = candidate
+                        targetButton = candidate
+                    }
+                } else if recognizer.activePhysicalButton == physicalButton {
+                    targetButton = recognizer.activeMappedButton
+                }
+
+                guard let targetButton else { return Unmanaged.passUnretained(event) }
+                let mappedType: CGEventType
+                if targetButton == .left {
+                    mappedType = isDown ? .leftMouseDown : (isUp ? .leftMouseUp : .leftMouseDragged)
+                } else if targetButton == .right {
+                    mappedType = isDown ? .rightMouseDown : (isUp ? .rightMouseUp : .rightMouseDragged)
+                } else {
+                    mappedType = isDown ? .otherMouseDown : (isUp ? .otherMouseUp : .otherMouseDragged)
+                }
+
+                recognizer.recognizedGesture = MouseButtonClick(type: mappedType, button: targetButton, position: event.location)
+                guard recognizer.lastSyntheticEventWasPosted else {
+                    if isDown {
+                        recognizer.activePhysicalButton = nil
+                        recognizer.activeMappedButton = nil
+                    }
                     return Unmanaged.passUnretained(event)
                 }
 
-                if mappedType == .otherMouseUp {
+                if isUp {
+                    recognizer.activePhysicalButton = nil
+                    recognizer.activeMappedButton = nil
                     recognizer.lockFingerInMiddle = false
                     recognizer.onlyFingerInMiddle = false
-                }
-                recognizer.recognizedGesture = MiddleMouse(type: mappedType, position: event.location)
-                guard recognizer.lastSyntheticEventWasPosted else {
-                    return Unmanaged.passUnretained(event)
                 }
 
                 // Drop the original click only after successfully posting its replacement.
