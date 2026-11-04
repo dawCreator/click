@@ -37,7 +37,7 @@ final class Device: Hashable {
         }
 
         let mtDevices: [MTDevice] = MTDeviceCreateList().takeRetainedValue() as Array
-        for mtDevice in mtDevices {
+        for mtDevice in mtDevices where isMagicMouse(mtDevice) {
             _ = Device(mtDevice: mtDevice)
         }
 
@@ -70,6 +70,26 @@ final class Device: Hashable {
         for device in Array(s) {
             s.remove(device)
         }
+    }
+
+    // MultitouchSupport returns trackpads and other surfaces too. These family
+    // and sensor dimensions are the known Magic Mouse identifiers in this private API.
+    private static func isMagicMouse(_ mtDevice: MTDevice) -> Bool {
+        var familyID: Int32 = 0
+        let familyStatus = withUnsafeMutablePointer(to: &familyID) {
+            MTDeviceGetFamilyID(mtDevice, $0)
+        }
+        if familyStatus == noErr, familyID == 112 { return true }
+
+        var width: Int32 = 0
+        var height: Int32 = 0
+        let dimensionsStatus = withUnsafeMutablePointer(to: &width) { widthPointer in
+            withUnsafeMutablePointer(to: &height) { heightPointer in
+                MTDeviceGetSensorSurfaceDimensions(mtDevice, widthPointer, heightPointer)
+            }
+        }
+        return dimensionsStatus == noErr &&
+            ((width == 5152 && height == 9056) || (width == 9056 && height == 5152))
     }
 
     static func getID(mtDevice: MTDevice) -> UInt64? {

@@ -8,162 +8,172 @@
 import Foundation
 import CoreGraphics
 import AppKit
-import Combine
 
-class GestureSynthesizer {
-    private let EVENT_SOURCE: CGEventSource = CGEventSource(stateID: .hidSystemState)!
-    
-    private func beginGesture() {
-        let EVENT: CGEvent = CGEvent(source: EVENT_SOURCE)!
-        EVENT.type = CGEventType(rawValue: 19)! // EventType: Gesture
-        EVENT.flags = CGEventFlags(rawValue: 536870912)
-        EVENT.timestamp = getSystemTime()
-        EVENT.setIntegerValueField(CGEventField(rawValue: 55)!, value: 29) // type = Gesture
-        EVENT.setIntegerValueField(CGEventField(rawValue: 110)!, value: 61) // SubType = GestureBegin
-        EVENT.setIntegerValueField(CGEventField(rawValue: 115)!, value: 5) // SubType = 5 ??
-        EVENT.setIntegerValueField(CGEventField(rawValue: 117)!, value: 5) // SubType = 5 ??
-        EVENT.setIntegerValueField(CGEventField(rawValue: 87)!, value: 4294970300) // SubType = 5 ??
-        EVENT.post(tap: .cghidEventTap)
-    }
-    private func endGesture() {
-        let EVENT: CGEvent = CGEvent(source: EVENT_SOURCE)!
-        EVENT.type = CGEventType(rawValue: 20)! // EventType: Gesture
-        EVENT.flags = CGEventFlags(rawValue: 536870912)
-        EVENT.timestamp = getSystemTime()
-        EVENT.setIntegerValueField(CGEventField(rawValue: 55)!, value: 29) // type = Gesture
-        EVENT.setIntegerValueField(CGEventField(rawValue: 110)!, value: 62) // SubType  = GestureEnd
-        EVENT.setIntegerValueField(CGEventField(rawValue: 115)!, value: 5) // SubType = 5 ??
-        EVENT.setIntegerValueField(CGEventField(rawValue: 117)!, value: 5) // SubType = 5 ??
-        EVENT.setIntegerValueField(CGEventField(rawValue: 87)!, value: 4294970300) // SubType = 5 ??
+private func setCGEventIntegerField(_ rawValue: UInt32, on event: CGEvent, to value: Int64) {
+    guard let field = CGEventField(rawValue: rawValue) else { return }
+    event.setIntegerValueField(field, value: value)
+}
 
-        EVENT.post(tap: .cghidEventTap)
+private func setCGEventDoubleField(_ rawValue: UInt32, on event: CGEvent, to value: Double) {
+    guard let field = CGEventField(rawValue: rawValue) else { return }
+    event.setDoubleValueField(field, value: value)
+}
+
+final class GestureSynthesizer {
+    private let eventSource = CGEventSource(stateID: .hidSystemState)
+
+    private func makeEvent() -> CGEvent? {
+        guard let eventSource else { return nil }
+        return CGEvent(source: eventSource)
     }
-    private func getSystemTime() -> UInt64 {
-        return UInt64(round(ProcessInfo.processInfo.systemUptime*pow(10,9)))
-    }
-    func synthesize(gesture: Gesture?, previousGesture: Gesture?) {
-        var event: CGEvent = CGEvent(source: EVENT_SOURCE)!
-        var eventPhase: Int64 = 2 // Phase = Changed
-        let GESTURE_TYPE_CHANGED = gesture?.classType() != previousGesture?.classType()
-        if GESTURE_TYPE_CHANGED {
-            let PREVIOUS_GESTURE_NEEDS_TEAR_DOWN = previousGesture != nil && previousGesture!.NEEDS_GESTURE_FRAME
-            if PREVIOUS_GESTURE_NEEDS_TEAR_DOWN {
-                event.timestamp = getSystemTime()
-                event = previousGesture!.synthesize(event: event)
-                event.setIntegerValueField(CGEventField(rawValue: 132)!, value: 4)
-                event.post(tap: .cghidEventTap)
-                endGesture()
-            }
-            let NEW_GESTURE_NEEDS_BUILD_UP = gesture != nil && gesture!.NEEDS_GESTURE_FRAME
-            if NEW_GESTURE_NEEDS_BUILD_UP {
-                beginGesture()
-                eventPhase = 1 // Phase = Begin
-            }
-        }
-        guard let GESTURE = gesture else {
-            return
-        }
+
+    private func beginGesture() -> Bool {
+        guard let event = makeEvent(), let eventType = CGEventType(rawValue: 19) else { return false }
+        event.type = eventType
+        event.flags = CGEventFlags(rawValue: 536870912)
         event.timestamp = getSystemTime()
-        event = GESTURE.synthesize(event: event)
-        event.setIntegerValueField(CGEventField(rawValue: 132)!, value: eventPhase)
-        
+        setCGEventIntegerField(55, on: event, to: 29)
+        setCGEventIntegerField(110, on: event, to: 61)
+        setCGEventIntegerField(115, on: event, to: 5)
+        setCGEventIntegerField(117, on: event, to: 5)
+        setCGEventIntegerField(87, on: event, to: 4294970300)
         event.post(tap: .cghidEventTap)
+        return true
     }
-    private func testFields(with name: String, isNSEventField: Bool = false, testValue: Int64 = 1, startIndex: UInt32 = 0, endIndex: UInt32 = 1000) {
-        let EVENT = CGEvent(source: EVENT_SOURCE)!
-        let PHASE = NSEvent(cgEvent: EVENT)?.phase
-        for i: UInt32 in 56...1000 {
-            guard let EVENT_FIELD = CGEventField(rawValue: i) else {continue}
-            EVENT.setIntegerValueField(EVENT_FIELD, value: 2)
-            print(i, NSEvent(cgEvent: EVENT)?.phase)
-            if (NSEvent(cgEvent: EVENT)?.phase != PHASE) {
-                print(i)
-                exit(1)
+
+    private func endGesture() -> Bool {
+        guard let event = makeEvent(), let eventType = CGEventType(rawValue: 20) else { return false }
+        event.type = eventType
+        event.flags = CGEventFlags(rawValue: 536870912)
+        event.timestamp = getSystemTime()
+        setCGEventIntegerField(55, on: event, to: 29)
+        setCGEventIntegerField(110, on: event, to: 62)
+        setCGEventIntegerField(115, on: event, to: 5)
+        setCGEventIntegerField(117, on: event, to: 5)
+        setCGEventIntegerField(87, on: event, to: 4294970300)
+        event.post(tap: .cghidEventTap)
+        return true
+    }
+
+    private func getSystemTime() -> UInt64 {
+        UInt64(ProcessInfo.processInfo.systemUptime * 1_000_000_000)
+    }
+
+    /// Returns false if the requested synthetic event could not be constructed.
+    @discardableResult
+    func synthesize(gesture: Gesture?, previousGesture: Gesture?) -> Bool {
+        guard var event = makeEvent() else { return false }
+        var eventPhase: Int64 = 2 // Changed
+        let gestureTypeChanged = gesture?.classType() != previousGesture?.classType()
+
+        if gestureTypeChanged {
+            if let previousGesture, previousGesture.NEEDS_GESTURE_FRAME {
+                event.timestamp = getSystemTime()
+                guard let tearDownEvent = previousGesture.synthesize(event: event) else { return false }
+                setCGEventIntegerField(132, on: tearDownEvent, to: 4)
+                tearDownEvent.post(tap: .cghidEventTap)
+                guard endGesture() else { return false }
+            }
+
+            if let gesture, gesture.NEEDS_GESTURE_FRAME {
+                guard beginGesture() else { return false }
+                eventPhase = 1 // Begin
             }
         }
+
+        guard let gesture else { return true }
+        event.timestamp = getSystemTime()
+        guard let synthesizedEvent = gesture.synthesize(event: event) else { return false }
+        setCGEventIntegerField(132, on: synthesizedEvent, to: eventPhase)
+        synthesizedEvent.post(tap: .cghidEventTap)
+        return true
     }
-    
 }
 
 protocol Gesture {
     var NEEDS_GESTURE_FRAME: Bool { get }
-    
-    func synthesize(event: CGEvent) -> CGEvent
+    func synthesize(event: CGEvent) -> CGEvent?
 }
+
 extension Gesture {
     func classType() -> Gesture.Type {
-        return type(of: self)
+        type(of: self)
     }
 }
-class Magnification: Gesture {
-    let NEEDS_GESTURE_FRAME: Bool = true
-    
-    private var magnification: Double
+
+final class Magnification: Gesture {
+    let NEEDS_GESTURE_FRAME = true
+    private let magnification: Double
+
     init(delta: Double) {
         magnification = delta
     }
-    
-    func synthesize(event: CGEvent) -> CGEvent {
-        event.type = CGEventType(rawValue: 30)! // EventType: Magnify
+
+    func synthesize(event: CGEvent) -> CGEvent? {
+        guard let eventType = CGEventType(rawValue: 30) else { return nil }
+        event.type = eventType
         event.flags = CGEventFlags(rawValue: 536870912)
-        
-        event.setIntegerValueField(CGEventField(rawValue: 55)!, value: 29) // Type = Magnify
-        event.setIntegerValueField(CGEventField(rawValue: 59)!, value: 256) // ??
-        event.setIntegerValueField(CGEventField(rawValue: 101)!, value: 4) // ??
-        event.setIntegerValueField(CGEventField(rawValue: 107)!, value: 4) // ??
-        event.setIntegerValueField(CGEventField(rawValue: 110)!, value: 8) // SubType = Magnify
-        event.setIntegerValueField(CGEventField(rawValue: 87)!, value: 4294970300)
-        event.setDoubleValueField(CGEventField(rawValue: 113)!, value: magnification) // Magnification
-        event.setDoubleValueField(CGEventField(rawValue: 114)!, value: magnification) // Magnification
-        event.setDoubleValueField(CGEventField(rawValue: 116)!, value: magnification) // Magnification
-        event.setDoubleValueField(CGEventField(rawValue: 118)!, value: magnification) // Magnification
-        
+        setCGEventIntegerField(55, on: event, to: 29)
+        setCGEventIntegerField(59, on: event, to: 256)
+        setCGEventIntegerField(101, on: event, to: 4)
+        setCGEventIntegerField(107, on: event, to: 4)
+        setCGEventIntegerField(110, on: event, to: 8)
+        setCGEventIntegerField(87, on: event, to: 4294970300)
+        setCGEventDoubleField(113, on: event, to: magnification)
+        setCGEventDoubleField(114, on: event, to: magnification)
+        setCGEventDoubleField(116, on: event, to: magnification)
+        setCGEventDoubleField(118, on: event, to: magnification)
         return event
     }
 }
-class Rotation: Gesture {
-    let NEEDS_GESTURE_FRAME: Bool = true
-    
-    var rotation: Double
+
+final class Rotation: Gesture {
+    let NEEDS_GESTURE_FRAME = true
+    private let rotation: Double
+
     init(delta: Double) {
         rotation = delta
     }
-    
-    func synthesize(event: CGEvent) -> CGEvent {
-        event.type = CGEventType(rawValue: 18)! // EventType: Rotate
+
+    func synthesize(event: CGEvent) -> CGEvent? {
+        guard let eventType = CGEventType(rawValue: 18) else { return nil }
+        event.type = eventType
         event.flags = CGEventFlags(rawValue: 536870912)
-        
-        event.setIntegerValueField(CGEventField(rawValue: 55)!, value: 29) // Type = Gesture
-        event.setIntegerValueField(CGEventField(rawValue: 59)!, value: 256) // ??
-        event.setIntegerValueField(CGEventField(rawValue: 101)!, value: 4) // ??
-        event.setIntegerValueField(CGEventField(rawValue: 107)!, value: 1200) // ??
-        event.setIntegerValueField(CGEventField(rawValue: 110)!, value: 5) // SubType = Rotate
-        event.setDoubleValueField(CGEventField(rawValue: 113)!, value: rotation) // Rotation
-        event.setDoubleValueField(CGEventField(rawValue: 114)!, value: rotation) // Rotation
-        event.setDoubleValueField(CGEventField(rawValue: 116)!, value: rotation) // Rotation
-        event.setDoubleValueField(CGEventField(rawValue: 118)!, value: rotation) // Rotation
-        
+        setCGEventIntegerField(55, on: event, to: 29)
+        setCGEventIntegerField(59, on: event, to: 256)
+        setCGEventIntegerField(101, on: event, to: 4)
+        setCGEventIntegerField(107, on: event, to: 1200)
+        setCGEventIntegerField(110, on: event, to: 5)
+        setCGEventDoubleField(113, on: event, to: rotation)
+        setCGEventDoubleField(114, on: event, to: rotation)
+        setCGEventDoubleField(116, on: event, to: rotation)
+        setCGEventDoubleField(118, on: event, to: rotation)
         return event
     }
 }
-class MiddleMouse: Gesture {
-// Gesture Implementation
-    let NEEDS_GESTURE_FRAME: Bool = false
-    
-    func synthesize(event: CGEvent) -> CGEvent {
-        return CGEvent(mouseEventSource: CGEventSource(event: event), mouseType: TYPE, mouseCursorPosition: POSITION, mouseButton: .center)!
-    }
-// Own
-    private let ALLOWED_EVENT_TYPES: Array<CGEventType> = [.otherMouseDown, .otherMouseUp, .otherMouseDragged]
+
+final class MiddleMouse: Gesture {
+    let NEEDS_GESTURE_FRAME = false
     let TYPE: CGEventType
-    
-    private let POSITION: CGPoint
+    private let position: CGPoint
+
+    private let allowedEventTypes: Set<CGEventType> = [
+        .otherMouseDown, .otherMouseUp, .otherMouseDragged
+    ]
+
     init?(type: CGEventType, position: CGPoint) {
-        guard ALLOWED_EVENT_TYPES.contains(type) else {
-            return nil
-        }
+        guard allowedEventTypes.contains(type) else { return nil }
         TYPE = type
-        POSITION = position
+        self.position = position
     }
-    
+
+    func synthesize(event: CGEvent) -> CGEvent? {
+        guard let source = CGEventSource(event: event) else { return nil }
+        return CGEvent(
+            mouseEventSource: source,
+            mouseType: TYPE,
+            mouseCursorPosition: position,
+            mouseButton: .center
+        )
+    }
 }

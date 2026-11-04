@@ -55,6 +55,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         startMonitoringWhenTrusted()
     }
 
+    func applicationWillTerminate(_ notification: Notification) {
+        accessibilityPollingTimer?.invalidate()
+        accessibilityPollingTimer = nil
+        Device.stopMonitoringDevices()
+        GestureRecognizer.SINGLETON.stopEventTap()
+    }
+
     // Method to register for automatic launch at login
     private func registerForLaunchAtLogin() {
         do {
@@ -135,10 +142,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func startMonitoringWhenTrusted() {
         guard !isMonitoring, AXIsProcessTrusted() else { return }
 
-        guard GestureRecognizer.SINGLETON.setupEventTap() else {
-            logger.error("Could not start monitoring because the mouse event tap failed")
-            return
-        }
+        guard GestureRecognizer.SINGLETON.setupEventTap() else { return }
 
         Device.startMonitoringDevices()
         isMonitoring = true
