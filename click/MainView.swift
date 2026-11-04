@@ -13,10 +13,23 @@ struct MainView: View {
     @Environment(\.colorScheme) var colorScheme
     class ObservableTouches: ObservableObject {
         @Published private(set) var buffer: [MTTouch] = []
-        public func update(touches: [MTTouch]) {
-            DispatchQueue.main.async {
-                self.buffer = touches
+        private var lastPublishedAt: TimeInterval = 0
+
+        func update(touches: [MTTouch]) {
+            if Thread.isMainThread {
+                publish(touches)
+            } else {
+                DispatchQueue.main.async {
+                    self.publish(touches)
+                }
             }
+        }
+
+        private func publish(_ touches: [MTTouch]) {
+            let now = ProcessInfo.processInfo.systemUptime
+            guard touches.isEmpty || now - lastPublishedAt >= 1.0 / 60.0 else { return }
+            lastPublishedAt = now
+            buffer = touches
         }
     }
     @ObservedObject var observableTouches: ObservableTouches = ObservableTouches()

@@ -5,112 +5,150 @@
 //  Created by Lukas Schmale on 13.06.24.
 //
 
-class Device: Hashable, ObservableObject {
-// Hashable Conformance
+import Foundation
+import os.log
+
+final class Device: Hashable {
     static func == (lhs: Device, rhs: Device) -> Bool {
-        return lhs.ID == rhs.ID
+        lhs.id == rhs.id
     }
+
     func hash(into hasher: inout Hasher) {
-        hasher.combine(ID)
+        hasher.combine(id)
     }
-// Store Active Devices
+
     static private(set) var s: Set<Device> = []
-// Track Active Devices:
-    private var shouldDeinit: Bool = false
-    @objc static func updateDevices(_: Notification?) {
-    // Mark Old Devices
-        for device in Device.s {
+    private static var isObservingDeviceChanges = false
+    private static let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "click", category: "Device")
+
+    private var shouldDeinit = false
+    private let id: UInt64
+    private let mtDevice: MTDevice
+    private var devicePointer: UnsafeMutablePointer<Unmanaged<Device>>?
+
+    @objc static func updateDevices(_ notification: Notification?) {
+        guard Thread.isMainThread else {
+            DispatchQueue.main.async { updateDevices(notification) }
+            return
+        }
+
+        for device in Array(s) {
             device.shouldDeinit = true
         }
-    // Add New Devices
-        let MT_DEVICES = MTDeviceCreateList().takeRetainedValue() as Array
-        for mtDevice in MT_DEVICES {
+
+        let mtDevices: [MTDevice] = MTDeviceCreateList().takeRetainedValue() as Array
+        for mtDevice in mtDevices {
             _ = Device(mtDevice: mtDevice)
         }
-    // Delete Old Devices
-        for device in Device.s {
-            if device.shouldDeinit {
-                Device.s.remove(device)
-            }
+
+        // Remove from a snapshot so mutating the set cannot invalidate iteration.
+        for device in Array(s) where device.shouldDeinit {
+            s.remove(device)
         }
     }
+
     static func startMonitoringDevices() {
-        self.updateDevices(nil)
-    // Call self.updateDevices() Whenever Devices Connect/Disconnect:
-        NotificationCenter.default.addObserver(self, selector: #selector(self.updateDevices), name: Notification.Name("_NSNotificationDevicesChanged"), object: nil)
+        guard !isObservingDeviceChanges else { return }
+        isObservingDeviceChanges = true
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(updateDevices(_:)),
+            name: Notification.Name("_NSNotificationDevicesChanged"),
+            object: nil
+        )
+        updateDevices(nil)
     }
+
     static func stopMonitoringDevices() {
-        NotificationCenter.default.removeObserver(self, name: Notification.Name("_NSNotificationDevicesChanged"), object: nil)
-        Device.s = []
+        guard isObservingDeviceChanges else { return }
+        NotificationCenter.default.removeObserver(
+            self,
+            name: Notification.Name("_NSNotificationDevicesChanged"),
+            object: nil
+        )
+        isObservingDeviceChanges = false
+        for device in Array(s) {
+            s.remove(device)
+        }
     }
-// Properties
-    enum DeviceType {
-        case MagicMouse
+
+    static func getID(mtDevice: MTDevice) -> UInt64? {
+        var id: UInt64 = 0
+        let status = withUnsafeMutablePointer(to: &id) {
+            MTDeviceGetDeviceID(mtDevice, $0)
+        }
+        return status == noErr ? id : nil
     }
-    private var type: DeviceType
-    private let ID: UInt64
-    static func getID(mtDevice: MTDevice) -> UInt64 {
-        let ID: UInt64 = 0,
-            ID_POINTER = UnsafeMutablePointer<UInt64>.allocate(capacity: 1)
-        ID_POINTER.initialize(to: ID)
-        MTDeviceGetDeviceID(mtDevice, ID_POINTER)
-        ID_POINTER.deallocate()
-        return ID
-    }
-    private let MT_DEVICE: MTDevice
-    var view: MainView?
-// Initializer(s)
+
     static func getDeviceFrom(mtDevice: MTDevice) -> Device? {
-        let ID = Device.getID(mtDevice: mtDevice)
-        return Device.s.first { device in
-            return device.ID == ID
-        }
+        guard let id = getID(mtDevice: mtDevice) else { return nil }
+        return s.first { $0.id == id }
     }
+
     private init?(mtDevice: MTDevice) {
-        self.MT_DEVICE = mtDevice
-    // ID:
-        self.ID = Device.getID(mtDevice: mtDevice)
-    // Type:
-        self.type = .MagicMouse
-        if (Device.s.contains(self)) {
-            let EXISTING_DEVICE = Device.s.first(where: {device in return device == self})
-            EXISTING_DEVICE?.shouldDeinit = false
+        guard let id = Device.getID(mtDevice: mtDevice) else { return nil }
+        self.mtDevice = mtDevice
+        self.id = id
+
+        if let existingDevice = Device.s.first(where: { $0.id == id }) {
+            existingDevice.shouldDeinit = false
             return nil
-        } else {
-            Device.s.insert(self)
         }
-        startMonitoringTouches()
+
+        Device.s.insert(self)
+        guard startMonitoringTouches() else {
+            Device.s.remove(self)
+            return nil
+        }
     }
+
     deinit {
         stopMonitoringTouches()
     }
-    @Published private var _touches: Array<MTTouch> = []
-    public var touches: Array<MTTouch> {
-        get {
-            return _touches
+
+    private func receiveTouches(_ touches: [MTTouch]) {
+        MainView.MAIN_VIEW.observableTouches.update(touches: touches)
+        GestureRecognizer.SINGLETON.recognize(mtTouches: touches)
+    }
+
+    private let contactFrameCallback: MTFrameCallbackRefconFunction = {
+        _, mtTouches, count, _, _, refcon in
+        guard let refcon else { return }
+        let devicePointer = refcon.assumingMemoryBound(to: Unmanaged<Device>.self)
+        let device = devicePointer.pointee.takeUnretainedValue()
+        let touches = Array(UnsafeBufferPointer(start: mtTouches, count: count))
+
+        // The private framework may invoke this callback off the main thread.
+        // Retain the Device while queued work uses it and keep UI/gesture state serialized.
+        DispatchQueue.main.async {
+            device.receiveTouches(touches)
         }
-        set(touches) {
-            _touches = touches
-            MainView.MAIN_VIEW.observableTouches.update(touches: touches)
-            GestureRecognizer.SINGLETON.recognize(mtTouches: touches)
+    }
+
+    private func startMonitoringTouches() -> Bool {
+        let pointer = UnsafeMutablePointer<Unmanaged<Device>>.allocate(capacity: 1)
+        pointer.initialize(to: Unmanaged.passUnretained(self))
+        devicePointer = pointer
+        MTRegisterContactFrameCallbackWithRefcon(mtDevice, contactFrameCallback, pointer)
+
+        let status = MTDeviceStart(mtDevice, 0)
+        guard status == noErr else {
+            MTUnregisterContactFrameCallback(mtDevice, contactFrameCallback)
+            pointer.deinitialize(count: 1)
+            pointer.deallocate()
+            devicePointer = nil
+            Self.logger.error("Could not start multitouch device (status \(status))")
+            return false
         }
+        return true
     }
-    private let CONTACT_FRAME_CALLBACK: MTFrameCallbackRefconFunction = { mtDevice, mtTouches, fingers, time, frame, device in
-        let DEVICE_POINTER = device!.assumingMemoryBound(to: Device.self),
-            DEVICE = DEVICE_POINTER.pointee
-        let TOUCHES_BUFFER = UnsafeBufferPointer<MTTouch>(start: mtTouches, count: fingers),
-            TOUCHES = Array(TOUCHES_BUFFER)
-        DEVICE.touches = TOUCHES
-    }
-    
-    private let DEVICE_POINTER = UnsafeMutablePointer<Device>.allocate(capacity: 1)
-    private func startMonitoringTouches() {
-        DEVICE_POINTER.initialize(to: self)
-        MTRegisterContactFrameCallbackWithRefcon(MT_DEVICE, CONTACT_FRAME_CALLBACK, DEVICE_POINTER)
-        MTDeviceStart(MT_DEVICE, 0)
-    }
+
     private func stopMonitoringTouches() {
-        MTUnregisterContactFrameCallback(MT_DEVICE, CONTACT_FRAME_CALLBACK)
-        DEVICE_POINTER.deallocate()
+        guard let pointer = devicePointer else { return }
+        MTUnregisterContactFrameCallback(mtDevice, contactFrameCallback)
+        MTDeviceStop(mtDevice)
+        pointer.deinitialize(count: 1)
+        pointer.deallocate()
+        devicePointer = nil
     }
 }

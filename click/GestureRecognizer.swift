@@ -6,130 +6,133 @@
 //
 import AppKit
 import CoreGraphics
-import Cocoa
-import QuartzCore
+import os.log
 
-class GestureRecognizer: ObservableObject {
-    static let SINGLETON: GestureRecognizer = GestureRecognizer()
-// Gesture Synthesizer
-    private let GESTURE_SYNTHESIZER: GestureSynthesizer = GestureSynthesizer()
+final class GestureRecognizer: ObservableObject {
+    static let SINGLETON = GestureRecognizer()
+
+    private let gestureSynthesizer = GestureSynthesizer()
+    private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "click", category: "GestureRecognizer")
     private var recognizedGesture: Gesture? {
         didSet(previousGesture) {
-            if let middleMouseGesture = recognizedGesture as? MiddleMouse {
-                if middleMouseGesture.TYPE == .otherMouseDown {
-                    lockFingerInMiddle = true
-                }
+            if recognizedGesture == nil && previousGesture == nil { return }
+            if let middleMouseGesture = recognizedGesture as? MiddleMouse,
+               middleMouseGesture.TYPE == .otherMouseDown {
+                lockFingerInMiddle = true
             }
-            GESTURE_SYNTHESIZER.synthesize(gesture: recognizedGesture, previousGesture: previousGesture)
+            gestureSynthesizer.synthesize(gesture: recognizedGesture, previousGesture: previousGesture)
         }
     }
-// Privats
-    private var lockFingerInMiddle: Bool = false
-    private var onlyFingerInMiddle: Bool = false
-    
+
+    private var lockFingerInMiddle = false
+    private var onlyFingerInMiddle = false
     private var previousPinchDistance: Float?
-    
-    public func recognize(mtTouches: [MTTouch]) {
+    private var eventTap: CFMachPort?
+    private var eventTapRunLoopSource: CFRunLoopSource?
+    private var hasLoggedEventTapFailure = false
+
+    private let middleMouseEventMapping: [CGEventType: CGEventType] = [
+        .leftMouseDown: .otherMouseDown,
+        .rightMouseDown: .otherMouseDown,
+        .leftMouseUp: .otherMouseUp,
+        .rightMouseUp: .otherMouseUp,
+        .leftMouseDragged: .otherMouseDragged,
+        .rightMouseDragged: .otherMouseDragged
+    ]
+
+    func recognize(mtTouches: [MTTouch]) {
         switch mtTouches.count {
         case 2:
-            let TOUCH_ONE = mtTouches[0],
-                TOUCH_TWO = mtTouches[1]
-            let A = TOUCH_ONE.normalized.position,
-                B = TOUCH_TWO.normalized.position
-            let DX = A.x - B.x,
-                DY = A.y - B.y
-            let DISTANCE = sqrt(DX*DX + DY*DY)
-            if previousPinchDistance != nil {
-                let DISTANCE_DELTA: Double = Double(DISTANCE - previousPinchDistance!)
-                let MIN_PRESSURE = min(TOUCH_ONE.zTotal, TOUCH_TWO.zTotal)
-                if 0.001 < abs(DISTANCE_DELTA) && 0.4 < MIN_PRESSURE{
-                    recognizedGesture = Magnification(delta: DISTANCE_DELTA*4)
+            if !lockFingerInMiddle { onlyFingerInMiddle = false }
+            let touchOne = mtTouches[0]
+            let touchTwo = mtTouches[1]
+            let a = touchOne.normalized.position
+            let b = touchTwo.normalized.position
+            let dx = a.x - b.x
+            let dy = a.y - b.y
+            let distance = sqrt(dx * dx + dy * dy)
+
+            if let previousPinchDistance {
+                let delta = Double(distance - previousPinchDistance)
+                let minPressure = min(touchOne.zTotal, touchTwo.zTotal)
+                if abs(delta) > 0.001, minPressure > 0.4 {
+                    recognizedGesture = Magnification(delta: delta * 4)
                 }
             }
-            previousPinchDistance = DISTANCE
+            previousPinchDistance = distance
+
         case 1:
             if !lockFingerInMiddle {
-                let ONLY_TOUCH = mtTouches[0],
-                    X = ONLY_TOUCH.normalized.position.x
-                onlyFingerInMiddle = 0.33 < X && X < 0.66
+                let x = mtTouches[0].normalized.position.x
+                onlyFingerInMiddle = 0.33 < x && x < 0.66
             }
-            fallthrough
+            recognizedGesture = nil
+            previousPinchDistance = nil
+
         default:
+            if !lockFingerInMiddle { onlyFingerInMiddle = false }
             recognizedGesture = nil
             previousPinchDistance = nil
         }
     }
-    private var eventTap: CFMachPort?
-    func setupEventTap() {
-        // Choose only the mouse events you need, not ALL events
+
+    @discardableResult
+    func setupEventTap() -> Bool {
+        if eventTap != nil { return true }
+
         let types: [CGEventType] = [
             .leftMouseDown, .leftMouseUp, .leftMouseDragged,
-            .rightMouseDown, .rightMouseUp, .rightMouseDragged,
-            .otherMouseDown, .otherMouseUp, .otherMouseDragged,
-            .mouseMoved
+            .rightMouseDown, .rightMouseUp, .rightMouseDragged
         ]
         let mask = types.reduce(CGEventMask(0)) { $0 | (1 << $1.rawValue) }
 
-        // Prefer listenOnly unless you need to modify events
-        let options: CGEventTapOptions = .listenOnly // or .defaultTap if you need to swallow/modify
-
         guard let tap = CGEvent.tapCreate(
-            tap: .cgSessionEventTap,            // less privileged than cghidEventTap
+            tap: .cgSessionEventTap,
             place: .headInsertEventTap,
-            options: options,
+            options: .defaultTap,
             eventsOfInterest: mask,
-            callback: { proxy, type, event, userInfo in
-                // Handle tap disabled cases
+            callback: { _, type, event, userInfo in
                 if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
-                    if let info = userInfo {
-                        let recognizer = Unmanaged<GestureRecognizer>.fromOpaque(info).takeUnretainedValue()
-                        if let existingTap = recognizer.eventTap {
-                            CGEvent.tapEnable(tap: existingTap, enable: true)
-                        }
+                    guard let userInfo else { return Unmanaged.passUnretained(event) }
+                    let recognizer = Unmanaged<GestureRecognizer>.fromOpaque(userInfo).takeUnretainedValue()
+                    if let existingTap = recognizer.eventTap {
+                        CGEvent.tapEnable(tap: existingTap, enable: true)
                     }
                     return Unmanaged.passUnretained(event)
                 }
 
-                // Forward events
-                if let info = userInfo {
-                    let recognizer = Unmanaged<GestureRecognizer>.fromOpaque(info).takeUnretainedValue()
-
-                    if recognizer.onlyFingerInMiddle {
-                        let mapping: [CGEventType: CGEventType] = [
-                            .leftMouseDown: .otherMouseDown,
-                            .rightMouseDown: .otherMouseDown,
-                            .leftMouseUp: .otherMouseUp,
-                            .rightMouseUp: .otherMouseUp,
-                            .leftMouseDragged: .otherMouseDragged,
-                            .rightMouseDragged: .otherMouseDragged
-                        ]
-                        if let mappedType = mapping[event.type] {
-                            if mappedType == .otherMouseUp {
-                                recognizer.lockFingerInMiddle = false
-                            }
-                            recognizer.recognizedGesture = MiddleMouse(type: mappedType, position: event.location)
-                            // If you truly need to swallow the original event, use .defaultTap and return nil.
-                            // With .listenOnly, you must return the event:
-                            return Unmanaged.passUnretained(event)
-                        }
-                    }
+                guard let userInfo else { return Unmanaged.passUnretained(event) }
+                let recognizer = Unmanaged<GestureRecognizer>.fromOpaque(userInfo).takeUnretainedValue()
+                guard recognizer.onlyFingerInMiddle,
+                      let mappedType = recognizer.middleMouseEventMapping[type] else {
+                    return Unmanaged.passUnretained(event)
                 }
-                return Unmanaged.passUnretained(event)
+
+                if mappedType == .otherMouseUp {
+                    recognizer.lockFingerInMiddle = false
+                    recognizer.onlyFingerInMiddle = false
+                }
+                recognizer.recognizedGesture = MiddleMouse(type: mappedType, position: event.location)
+
+                // The synthetic middle-button event was posted by the synthesizer.
+                // Drop the original left/right event so it is replaced, not duplicated.
+                return nil
             },
             userInfo: Unmanaged.passUnretained(self).toOpaque()
         ) else {
-            // Consider logging via your Logger here
-            // logger.error("Failed to create CGEvent tap. Check Accessibility permissions and sandbox.")
-            return
+            if !hasLoggedEventTapFailure {
+                logger.error("Could not create the mouse event tap")
+                hasLoggedEventTapFailure = true
+            }
+            return false
         }
 
-        self.eventTap = tap
-
-        let runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
-        CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, .commonModes)
+        let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
+        eventTap = tap
+        eventTapRunLoopSource = source
+        CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
         CGEvent.tapEnable(tap: tap, enable: true)
-
-        // IMPORTANT: Do not call CFRunLoopRun() here.
-        // The app's run loop is already running; adding the source is sufficient.
+        hasLoggedEventTapFailure = false
+        return true
     }
 }

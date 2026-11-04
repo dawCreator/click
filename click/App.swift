@@ -135,12 +135,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func startMonitoringWhenTrusted() {
         guard !isMonitoring, AXIsProcessTrusted() else { return }
 
-        accessibilityPollingTimer?.invalidate()
-        accessibilityPollingTimer = nil
-        isMonitoring = true
+        guard GestureRecognizer.SINGLETON.setupEventTap() else {
+            logger.error("Could not start monitoring because the mouse event tap failed")
+            return
+        }
 
         Device.startMonitoringDevices()
-        GestureRecognizer.SINGLETON.setupEventTap()
+        isMonitoring = true
+        accessibilityPollingTimer?.invalidate()
+        accessibilityPollingTimer = nil
         logger.info("Started monitoring devices and gesture recognizer")
 
         // Ensure devices are updated if initially empty
