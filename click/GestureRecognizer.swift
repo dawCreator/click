@@ -35,6 +35,9 @@ final class GestureRecognizer {
     private var activeMappedButton: CGMouseButton?
     private var previousPinchDistance: Float?
     private var pendingPinchDelta: Float = 0
+    private var pinchHasActivated = false
+    private let pinchActivationDistance: Float = 0.02
+    private let pinchEventDistance: Float = 0.001
     private var eventTap: CFMachPort?
     private var eventTapRunLoopSource: CFRunLoopSource?
     private var hasLoggedEventTapFailure = false
@@ -71,12 +74,17 @@ final class GestureRecognizer {
                 let minPressure = min(touchOne.zTotal, touchTwo.zTotal)
                 if minPressure > 0.4 {
                     pendingPinchDelta += delta
-                    if abs(pendingPinchDelta) >= 0.001 {
+                    if !pinchHasActivated, abs(pendingPinchDelta) >= pinchActivationDistance {
+                        pendingPinchDelta -= (pendingPinchDelta >= 0 ? pinchActivationDistance : -pinchActivationDistance)
+                        pinchHasActivated = true
+                    }
+                    if pinchHasActivated, abs(pendingPinchDelta) >= pinchEventDistance {
                         recognizedGesture = Magnification(delta: Double(pendingPinchDelta) * 4)
                         pendingPinchDelta = 0
                     }
                 } else {
                     pendingPinchDelta = 0
+                    pinchHasActivated = false
                     recognizedGesture = nil
                 }
             }
@@ -90,12 +98,14 @@ final class GestureRecognizer {
             recognizedGesture = nil
             previousPinchDistance = nil
             pendingPinchDelta = 0
+            pinchHasActivated = false
 
         default:
             if !lockFingerInMiddle { onlyFingerInMiddle = false }
             recognizedGesture = nil
             previousPinchDistance = nil
             pendingPinchDelta = 0
+            pinchHasActivated = false
         }
     }
 
